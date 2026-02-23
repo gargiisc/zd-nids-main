@@ -654,6 +654,29 @@ class LiveCaptureManager:
         """Get detection alerts."""
         return self.detection_callback.alerts
     
+
+    def enable_kafka_streaming(
+        self,
+        brokers: str,
+        topic: str,
+        max_queue_size: int = 10000,
+        max_flows_per_second: int = 2000
+    ) -> None:
+        """Stream captured packets to Kafka with queue buffering and rate limiting."""
+        from .streaming_pipeline import (
+            FlowBufferRateLimiter,
+            KafkaFlowPublisher,
+            LiveCaptureKafkaBridge,
+        )
+
+        publisher = KafkaFlowPublisher(brokers=brokers, topic=topic)
+        buffer = FlowBufferRateLimiter(
+            max_queue_size=max_queue_size,
+            max_flows_per_second=max_flows_per_second,
+        )
+        bridge = LiveCaptureKafkaBridge(publisher=publisher, buffer=buffer)
+        self.capture.add_callback(bridge)
+
     @property
     def is_running(self) -> bool:
         return self.capture.is_capturing

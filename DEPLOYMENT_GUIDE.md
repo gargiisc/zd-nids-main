@@ -500,3 +500,35 @@ except Exception as e:
 **Status**: ✅ READY FOR PRODUCTION
 
 All components tested, documented, and ready to deploy!
+
+## High-Level Real-Time & Scale Enhancements
+
+This repository now includes a high-level implementation scaffold for production-grade operation:
+
+1. **Kafka streaming ingestion**
+   - `collectors/streaming_pipeline.py` adds producer/consumer classes and live-capture bridge callbacks.
+   - `collectors/live_capture.py` includes `LiveCaptureManager.enable_kafka_streaming(...)` for sub-second packet-to-stream forwarding.
+
+2. **Buffering + rate limiting for spikes**
+   - `FlowBufferRateLimiter` provides bounded queue buffering and token bucket throttling.
+   - `collectors/pcap_handler.py` includes `process_packets_with_buffer(...)` for burst-safe pipeline testing.
+
+3. **Multi-source flow normalization**
+   - `collectors/flow_source_collector.py` normalizes NetFlow/sFlow/IPFIX style records into a common schema.
+
+4. **Real-time alert channels and escalation workflow**
+   - `detection/alert_manager.py` adds webhook channels (Slack/Teams/PagerDuty/custom) and escalation checks for unacknowledged alerts.
+
+5. **Alert correlation and deduplication**
+   - `detection/detector.py` now includes `AlertCorrelator` to group repeated attack events (e.g., same source + attack type).
+
+6. **Firewall integration abstraction**
+   - `response/firewall_integrator.py` provides a provider-agnostic API connector for automated block actions.
+
+7. **Threat intel custom feed ingestion**
+   - `intelligence/threat_intel_manager.py` adds `ingest_custom_feed(...)` for external enrichment sources.
+
+### Next production steps
+- Add Kafka, Redis, and PostgreSQL services into environment manifests.
+- Add Kubernetes deployment + HPA + readiness/liveness probes.
+- Build dedicated SIEM connectors (syslog + REST sinks) and staged UAT load tests.

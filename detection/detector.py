@@ -11,6 +11,7 @@ import threading
 import queue
 import logging
 import json
+from collections import defaultdict
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,31 @@ class DetectionResult:
         }
 
 
+
+
+class AlertCorrelator:
+    """Groups similar detections to reduce alert fatigue."""
+
+    def __init__(self, window_seconds: int = 300):
+        self.window_seconds = window_seconds
+
+    def correlate(self, results: List[DetectionResult]) -> List[DetectionResult]:
+        grouped: Dict[str, List[DetectionResult]] = defaultdict(list)
+        for result in results:
+            key = f"{result.source_ip}:{result.attack_type}"
+            grouped[key].append(result)
+
+        correlated: List[DetectionResult] = []
+        for _, bucket in grouped.items():
+            primary = max(bucket, key=lambda r: r.confidence)
+            primary.metadata = {
+                **primary.metadata,
+                "correlated_count": len(bucket),
+                "first_seen": min(r.timestamp for r in bucket).isoformat(),
+                "last_seen": max(r.timestamp for r in bucket).isoformat(),
+            }
+            correlated.append(primary)
+        return correlated
 class DetectionEngine:
     """
     Main detection engine for AI-NIDS.
@@ -129,6 +155,9 @@ class DetectionEngine:
         self.detection_threshold = self.config.get('detection_threshold', 0.5)
         self.enable_explanation = self.config.get('enable_explanation', True)
         self.batch_size = self.config.get('batch_size', 100)
+        self.correlator = AlertCorrelator(
+            window_seconds=self.config.get('correlation_window_seconds', 300)
+        )
         
         # Statistics
         self.stats = {
@@ -370,8 +399,8 @@ class DetectionEngine:
             meta = metadata[i] if i < len(metadata) else None
             result = self._detect_single(x, meta)
             results.append(result)
-        
-        return results
+
+        return self.correlator.correlate(results)
     
     def _get_severity(self, attack_type: str, confidence: float) -> ThreatSeverity:
         """Determine severity based on attack type and confidence."""

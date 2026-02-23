@@ -36,6 +36,9 @@ from .quarantine import (
     create_quarantine_manager
 )
 
+
+from .firewall_integrator import FirewallIntegrator, FirewallActionResult
+
 from .soc_protocols import (
     SOCProtocol,
     IncidentTicket,
@@ -63,6 +66,10 @@ __all__ = [
     'QuarantineEntry',
     'QuarantineReason',
     'create_quarantine_manager',
+
+    # Firewall Integrator
+    'FirewallIntegrator',
+    'FirewallActionResult',
     
     # SOC Protocols
     'SOCProtocol',
