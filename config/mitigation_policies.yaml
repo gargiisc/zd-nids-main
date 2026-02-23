@@ -1,0 +1,19 @@
+policies:
+  critical:
+    - block_ip
+    - add_firewall_rule
+    - isolate_host
+    - write_suricata_blocklist
+    - write_zeek_blocklist
+    - add_threat_intel
+  high:
+    - block_ip
+    - add_firewall_rule
+    - write_suricata_blocklist
+    - add_threat_intel
+  medium:
+    - rate_limit_ip
+    - write_suricata_blocklist
+    - add_threat_intel
+  low:
+    - alert_only

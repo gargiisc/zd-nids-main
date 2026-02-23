@@ -431,6 +431,36 @@ class MitigationStrategy(db.Model):
         return f'<MitigationStrategy {self.action_type} for {self.attack_type}>'
 
 
+class MitigationActionLog(db.Model):
+    """Audit log for autonomous mitigation actions with rollback metadata."""
+
+    __tablename__ = 'mitigation_action_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    attack_id = db.Column(db.String(128), index=True, nullable=False)
+    attack_type = db.Column(db.String(100), index=True, nullable=False)
+    source_ip = db.Column(db.String(45), index=True, nullable=False)
+    action_taken = db.Column(db.String(100), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    status = db.Column(db.String(20), nullable=False)  # success, failed, skipped
+    rollback_available = db.Column(db.Boolean, default=False)
+
+    details = db.Column(db.Text)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'attack_id': self.attack_id,
+            'attack_type': self.attack_type,
+            'source_ip': self.source_ip,
+            'action_taken': self.action_taken,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'status': self.status,
+            'rollback_available': self.rollback_available,
+            'details': self.details,
+        }
+
+
 class FederatedClient(db.Model):
     """Federated Learning Clients."""
     

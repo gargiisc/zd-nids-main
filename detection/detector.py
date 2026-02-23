@@ -4,7 +4,7 @@ Core detection logic integrating ML models with real-time analysis
 """
 
 import numpy as np
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from dataclasses import dataclass, field
 from datetime import datetime
 import threading
@@ -158,6 +158,8 @@ class DetectionEngine:
         self.correlator = AlertCorrelator(
             window_seconds=self.config.get('correlation_window_seconds', 300)
         )
+        self.mitigation_hook = None
+        self.mitigation_enabled = self.config.get('mitigation_enabled', True)
         
         # Statistics
         self.stats = {
@@ -379,9 +381,11 @@ class DetectionEngine:
             source_port=metadata.get('source_port') if metadata else None,
             destination_port=metadata.get('destination_port') if metadata else None,
             protocol=metadata.get('protocol') if metadata else None,
+            raw_features=metadata or {},
             shap_explanation=shap_explanation
         )
-        
+
+        self._trigger_mitigation_if_needed(result)
         return result
     
 # CONFIDENCE = Average of (Model1_prob × w1 + Model2_prob × w2 + ... + ModelN_prob × wN) / no. of all organizations
@@ -562,6 +566,23 @@ class DetectionEngine:
             'by_attack_type': {},
             'by_severity': {s.name: 0 for s in ThreatSeverity}
         }
+
+    def register_mitigation_hook(self, mitigation_engine: Any) -> None:
+        """Register autonomous mitigation hook engine."""
+        self.mitigation_hook = mitigation_engine
+
+    def _trigger_mitigation_if_needed(self, result: DetectionResult) -> None:
+        """Trigger mitigation asynchronously if configured thresholds are met."""
+        if not self.mitigation_enabled or self.mitigation_hook is None:
+            return
+        if not result.is_attack:
+            return
+
+        try:
+            if self.mitigation_hook.should_trigger(result):
+                self.mitigation_hook.trigger_async(result)
+        except Exception as exc:
+            logger.error(f"Mitigation hook failed: {exc}")
     
     # ===== Async Processing =====
     
