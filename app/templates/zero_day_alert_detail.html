@@ -1,0 +1,537 @@
+{% extends "base.html" %}
+
+{% block title %}Zero-Day Alert Detail{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: #0e0f13;
+        color: #e5e7eb;
+    }
+
+    /* Header */
+    .alert-header {
+        background: linear-gradient(135deg, #1f2933 0%, #111827 100%);
+        color: #f9fafb;
+        padding: 30px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+    }
+
+    .alert-header .subtitle {
+        font-size: 14px;
+        opacity: 0.8;
+    }
+
+    /* Metric Cards */
+    .metric-box {
+        background: #151922;
+        border-left: 4px solid #6366f1;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+        margin-bottom: 20px;
+    }
+
+    .metric-box h3 {
+        color: #a5b4fc;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 0;
+    }
+
+    .metric-box .value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #f9fafb;
+    }
+
+    /* Evidence List */
+    .evidence-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .evidence-list li {
+        padding: 12px;
+        background: #111827;
+        border-left: 3px solid #6366f1;
+        margin-bottom: 10px;
+        border-radius: 6px;
+        color: #d1d5db;
+    }
+
+    .evidence-list li::before {
+        content: "✔";
+        color: #22c55e;
+        font-weight: bold;
+        margin-right: 10px;
+    }
+
+    /* Detector Info */
+    .detector-info {
+        background: #0b0f19;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        border: 1px solid #1f2937;
+    }
+
+    .detector-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-right: 10px;
+        margin-bottom: 10px;
+    }
+
+    .detector-badge.reconstruction_error {
+        background: rgba(59,130,246,0.15);
+        color: #60a5fa;
+    }
+
+    .detector-badge.isolation_forest {
+        background: rgba(168,85,247,0.15);
+        color: #c084fc;
+    }
+
+    .detector-badge.statistical {
+        background: rgba(245,158,11,0.15);
+        color: #fbbf24;
+    }
+
+    /* Buttons */
+    .action-buttons .btn {
+        background: #1f2937;
+        color: #f9fafb;
+        border: 1px solid #374151;
+        transition: all 0.2s ease;
+    }
+
+    .action-buttons .btn:hover {
+        background: #6366f1;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 2px rgba(99,102,241,0.4);
+    }
+
+    /* Timeline */
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 5px;
+        top: 20px;
+        bottom: 0;
+        width: 2px;
+        background: #6366f1;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -27px;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        background: #6366f1;
+        border-radius: 50%;
+        box-shadow: 0 0 0 3px #0e0f13;
+    }
+
+    /* Severity */
+    .severity-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .severity-badge.critical {
+        background: rgba(239,68,68,0.2);
+        color: #f87171;
+    }
+
+    .severity-badge.high {
+        background: rgba(245,158,11,0.2);
+        color: #fbbf24;
+    }
+
+    .severity-badge.medium {
+        background: rgba(34,197,94,0.2);
+        color: #4ade80;
+    }
+
+    /* Confidence Bar */
+    .confidence-bar {
+        height: 8px;
+        background: #1f2937;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+
+    .confidence-bar-fill {
+        height: 100%;
+        width: var(--confidence);
+        background: linear-gradient(90deg, #ef4444, #facc15, #22c55e);
+        transition: width 0.3s ease;
+    }
+
+    /* Risk & Mitigation */
+    .risk-factor {
+        padding: 10px;
+        background: rgba(239,68,68,0.15);
+        border-left: 3px solid #ef4444;
+        margin-bottom: 10px;
+        border-radius: 6px;
+        color: #fecaca;
+    }
+
+    .mitigating-factor {
+        padding: 10px;
+        background: rgba(34,197,94,0.15);
+        border-left: 3px solid #22c55e;
+        margin-bottom: 10px;
+        border-radius: 6px;
+        color: #bbf7d0;
+    }
+</style>
+
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Alert Header -->
+    <div class="alert-header">
+        <h1>Alert ID: {{ alert.id }}</h1>
+        <div class="subtitle">
+            {{ alert.source_ip }} → {{ alert.destination_ip }}
+            <span class="severity-badge {{ (alert.severity or 'medium')|lower }}">{{ (alert.severity or 'MEDIUM')|upper
+                }}</span>
+        </div>
+    </div>
+
+    <!-- Key Metrics (fixed nesting: four sibling columns) -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="metric-box">
+                <h3>Anomaly Score</h3>
+                <div class="value">{{ "%.2f"|format(alert.risk_score or 0) }}</div>
+                <div class="confidence-bar">
+                    <div class="confidence-bar-fill" style="--confidence: {{ ((alert.risk_score or 0) * 100)|int }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="metric-box">
+                <h3>Confidence</h3>
+                <div class="value">{{ "%.0f"|format((alert.confidence or 0) * 100) }}%</div>
+                <div class="confidence-bar">
+                    <div class="confidence-bar-fill" style="--confidence: {{ ((alert.confidence or 0) * 100)|int }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="metric-box">
+                <h3>Attack Type</h3>
+                <div class="value" style="font-size: 16px;">{{ alert.attack_type or 'UNKNOWN' }}</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="metric-box">
+                <h3>Detected By</h3>
+                <div class="value" style="font-size: 14px;">{{ alert.model_used or 'ENSEMBLE' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flow Information -->
+    <div class="card">
+        <div class="card-header bg-dark">
+            <h5>Flow Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Source IP:</strong> {{ alert.source_ip }}</p>
+                    <p><strong>Source Port:</strong> {{ alert.source_port or 'N/A' }}</p>
+                    <p><strong>Protocol:</strong> {{ alert.protocol or 'N/A' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Destination IP:</strong> {{ alert.destination_ip }}</p>
+                    <p><strong>Destination Port:</strong> {{ alert.destination_port or 'N/A' }}</p>
+                    <p><strong>Timestamp:</strong> {{ alert.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') if
+                        alert.timestamp else 'N/A' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attack Categorization & Location Analysis -->
+    <div class="card">
+        <div class="card-header bg-dark">
+            <h5><i class="bi bi-geo-alt"></i> Attack Analysis: How & Where</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-primary">Attack Category & Method</h6>
+                    <div style="background: #2b2828; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                        <p style="margin: 5px 0;"><strong>Category:</strong> 
+                            {% if alert.attack_type == 'DDoS' %}
+                            Volume-Based Attack
+                            {% elif alert.attack_type == 'Port Scan' %}
+                            Reconnaissance
+                            {% elif alert.attack_type == 'Brute Force' %}
+                            Credential Attack
+                            {% elif alert.attack_type == 'SQL Injection' %}
+                            Application Attack
+                            {% elif alert.attack_type == 'Malware' %}
+                            Malicious Payload
+                            {% elif alert.attack_type == 'Data Exfiltration' %}
+                            Data Breach
+                            {% else %}
+                            Unknown Category
+                            {% endif %}
+                        </p>
+                        <p style="margin: 5px 0;"><strong>Method:</strong> 
+                            {% if alert.attack_type == 'DDoS' %}
+                            Flooding / Overwhelming Network
+                            {% elif alert.attack_type == 'Port Scan' %}
+                            Port Enumeration / Service Discovery
+                            {% elif alert.attack_type == 'Brute Force' %}
+                            Password Guessing Attack
+                            {% elif alert.attack_type == 'SQL Injection' %}
+                            Database Query Exploitation
+                            {% elif alert.attack_type == 'Malware' %}
+                            Executable Delivery / Infection
+                            {% elif alert.attack_type == 'Data Exfiltration' %}
+                            Unauthorized Data Transfer
+                            {% else %}
+                            Anomalous Behavior
+                            {% endif %}
+                        </p>
+                        <p style="margin: 5px 0;"><strong>Target Type:</strong> 
+                            {% if alert.attack_type in ['SQL Injection', 'Brute Force'] %}
+                            Application Layer
+                            {% elif alert.attack_type == 'Malware' %}
+                            Endpoint / Host
+                            {% elif alert.attack_type == 'Data Exfiltration' %}
+                            Data Resources
+                            {% else %}
+                            Network Layer
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-danger">Attack Location & Path</h6>
+                    <div style="background: #2b2828; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                        <p style="margin: 5px 0;"><strong>Attack Origin:</strong></p>
+                        <p style="margin: 5px 0; padding-left: 10px;">
+                            <code>{{ alert.source_ip }}:{{ alert.source_port or '?' }}</code>
+                        </p>
+                        <p style="margin: 15px 0 5px 0;"><strong>Attack Target:</strong></p>
+                        <p style="margin: 5px 0; padding-left: 10px;">
+                            <code>{{ alert.destination_ip }}:{{ alert.destination_port or '?' }}</code>
+                        </p>
+                        <p style="margin: 15px 0 5px 0;"><strong>Attack Path:</strong></p>
+                        <p style="margin: 5px 0; padding-left: 10px;">
+                            <small>{{ alert.protocol or 'TCP' }} Connection via Port {{ alert.destination_port or 'Unknown' }}</small>
+                        </p>
+                        <p style="margin: 15px 0 5px 0;"><strong>Traffic Pattern:</strong></p>
+                        <p style="margin: 5px 0; padding-left: 10px;">
+                            {% if alert.attack_type == 'DDoS' %}
+                            <small class="badge bg-danger">High Volume / Multiple Packets</small>
+                            {% elif alert.attack_type == 'Port Scan' %}
+                            <small class="badge bg-warning">Sequential Port Probing</small>
+                            {% elif alert.attack_type == 'Brute Force' %}
+                            <small class="badge bg-danger">Repeated Authentication Attempts</small>
+                            {% elif alert.attack_type == 'SQL Injection' %}
+                            <small class="badge bg-info">Malicious Query Injection</small>
+                            {% elif alert.attack_type == 'Malware' %}
+                            <small class="badge bg-danger">Suspicious Executable</small>
+                            {% elif alert.attack_type == 'Data Exfiltration' %}
+                            <small class="badge bg-dark">Outbound Data Transfer</small>
+                            {% else %}
+                            <small class="badge bg-secondary">Anomalous Pattern</small>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detector Information -->
+    <div class="card">
+        <div class="card-header bg-dark">
+            <h5>Detector Analysis</h5>
+        </div>
+        <div class="card-body">
+            <div class="detector-info">
+                <strong>Detected By:</strong>
+                <div>
+                    <span class="detector-badge">{{ alert.model_used or 'ENSEMBLE' }}</span>
+                </div>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <strong>Alert Score:</strong>
+                <div style="margin-bottom: 10px;">
+                    <small><strong>Risk Score:</strong> {{ "%.2f"|format(alert.risk_score or 0) }}</small>
+                    <div class="confidence-bar">
+                        <div class="confidence-bar-fill"
+                            style="--confidence: {{ ((alert.risk_score or 0) * 100)|int }}%;">
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Evidence -->
+        <div class="card">
+            <div class="card-header bg-dark">
+                <h5>Evidence & Reasoning</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Summary:</strong> Anomaly detected based on ensemble detector analysis</p>
+
+                <strong>Supporting Evidence:</strong>
+                <ul class="evidence-list">
+                    <li>Risk score exceeds threshold</li>
+                    <li>Confidence assessment confirms anomaly</li>
+                    <li>Detector consensus indicates attack pattern</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Risk Assessment -->
+        <div class="card">
+            <div class="card-header bg-dark">
+                <h5>Risk Assessment</h5>
+            </div>
+            <div class="card-body">
+                <strong>Risk Factors:</strong>
+                <div class="risk-factor">Anomalous behavior detected in network flow</div>
+                <div class="risk-factor">High risk score indicates potential threat</div>
+
+                <strong style="margin-top: 20px; display: block;">Severity:</strong>
+                <div class="risk-factor">{{ (alert.severity or 'MEDIUM')|upper }}</div>
+            </div>
+        </div>
+
+        <!-- Recommended Actions -->
+        <div class="card">
+            <div class="card-header bg-dark">
+                <h5>Recommended Actions</h5>
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li>Investigate the source IP and flow characteristics</li>
+                    <li>Review network traffic patterns for this IP</li>
+                    <li>Check firewall logs for related activity</li>
+                    <li>Correlate with other security alerts</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+            <div class="card-header bg-dark">
+                <h5>Alert Timeline</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <strong>Alert Detected</strong>
+                        <div class="text-muted">{{ alert.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') if
+                            alert.timestamp else 'N/A' }}</div>
+                    </div>
+                    <div class="timeline-item">
+                        <strong>Anomaly Score Computed</strong>
+                        <div class="text-muted">{{ "%.4f"|format(alert.risk_score or 0) }}</div>
+                    </div>
+                    <div class="timeline-item">
+                        <strong>Confidence Assessed</strong>
+                        <div class="text-muted">{{ "%.2f"|format((alert.confidence or 0) * 100) }}% confidence
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions (use url_for for dashboard link) -->
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="markAsAnalyzed('{{ alert.id }}')">
+                ✓ Mark as Analyzed
+            </button>
+            <button class="btn btn-success" onclick="markAsTP('{{ alert.id }}')">
+                ✓ Confirmed True Positive
+            </button>
+            <button class="btn btn-warning" onclick="markAsFP('{{ alert.id }}')">
+                ✗ False Positive
+            </button>
+            <button class="btn btn-danger" onclick="blockIP('{{ alert.source_ip }}')">
+                🚫 Block Source IP
+            </button>
+            <a href="{{ url_for('zero_day.zero_day_dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        function markAsAnalyzed(alertId) {
+            fetch(`/api/alerts/${alertId}/analyzed`, { method: 'POST' })
+                .then(() => alert('Alert marked as analyzed'))
+                .catch(err => alert('Error: ' + err));
+        }
+
+        function markAsTP(alertId) {
+            fetch(`/api/alerts/${alertId}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_tp: true })
+            }).then(() => alert('Feedback recorded - true positive'))
+                .catch(err => alert('Error: ' + err));
+        }
+
+        function markAsFP(alertId) {
+            fetch(`/api/alerts/${alertId}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_tp: false })
+            }).then(() => alert('Feedback recorded - false positive'))
+                .catch(err => alert('Error: ' + err));
+        }
+
+        function blockIP(ip) {
+            if (confirm(`Block traffic from ${ip}?`)) {
+                fetch(`/api/response/block-ip`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip: ip })
+                }).then(() => alert(`IP ${ip} blocked`))
+                    .catch(err => alert('Error: ' + err));
+            }
+        }
+    </script>
+    {% endblock %}

@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+
+{% block title %}Zero-Day Attack Detection Dashboard{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/federated_clients.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+	<!-- Page Header -->
+	<div class="page-header">
+		<div>
+			<h1 class="page-title">
+				<i class="bi bi-shield-exclamation text-danger"></i>
+				Zero-Day Detection Dashboard
+			</h1>
+			<p class="page-subtitle">Real-time anomaly detection, behavioral analysis, and federated consensus</p>
+		</div>
+		<div class="header-actions">
+			<select class="form-select time-filter" id="time-range">
+				<option value="1">Last 24 Hours</option>
+				<option value="7" selected>Last 7 Days</option>
+				<option value="30">Last 30 Days</option>
+			</select>
+			<a href="{{ url_for('analytics.export_pdf_report') }}" class="btn btn-report">
+				<i class="bi bi-file-earmark-pdf"></i> Generate Report
+			</a>
+		</div>
+	</div>
+
+	<!-- Client selector -->
+	<div class="client-selector" style="margin:8px 0; display:flex; gap:8px; align-items:center;">
+		<label for="federated-client-select" class="text-muted" style="margin:0 6px 0 0">Filter Clients:</label>
+		<select id="federated-client-select" class="form-select" style="width:260px;">
+			<option value="">All clients</option>
+		</select>
+		<button id="save-client-selection" class="btn btn-sm btn-outline-light">Save</button>
+		<button id="clear-client-selection" class="btn btn-sm btn-outline-secondary">Clear</button>
+	</div>
+
+	<!-- Stats Grid -->
+	<div class="stats-grid">
+		<div class="stat-card">
+			<div class="stat-icon red">
+				<i class="bi bi-exclamation-triangle"></i>
+			</div>
+			<div class="stat-content">
+				<h3 id="total-anomalies">0</h3>
+				<p>Total Anomalies</p>
+			</div>
+		</div>
+		<div class="stat-card">
+			<div class="stat-icon orange">
+				<i class="bi bi-lightning"></i>
+			</div>
+			<div class="stat-content">
+				<h3 id="high-confidence-count">0</h3>
+				<p>High Confidence (>70%)</p>
+			</div>
+		</div>
+		<div class="stat-card">
+			<div class="stat-icon purple">
+				<i class="bi bi-cpu"></i>
+			</div>
+			<div class="stat-content">
+				<h3 id="ensemble-consensus">0%</h3>
+				<p>Avg. Ensemble Confidence</p>
+			</div>
+		</div>
+		<div class="stat-card">
+			<div class="stat-icon teal">
+				<i class="bi bi-diagram-3"></i>
+			</div>
+			<div class="stat-content">
+				<h3 id="unique-sources">0</h3>
+				<p>Unique Source IPs</p>
+			</div>
+		</div>
+		<!-- <div class="stat-card">
+			<div class="stat-icon blue">
+				<i class="bi bi-shuffle"></i>
+			</div>
+			<div class="stat-content">
+				<h3 id="federated-clients">-</h3>
+				<p>Federated Clients</p>
+			</div>
+		</div> -->
+	</div>
+
+	<!-- Charts Grid -->
+	<div class="charts-grid">
+		<div class="chart-card">
+			<div class="card-header">
+				<h3><i class="bi bi-graph-up"></i> Anomaly Timeline</h3>
+			</div>
+			<div class="card-body">
+				<canvas id="anomaly-timeline" height="300"></canvas>
+			</div>
+		</div>
+
+		<div class="chart-card">
+			<div class="card-header">
+				<h3><i class="bi bi-bar-chart"></i> Detector Performance</h3>
+			</div>
+			<div class="card-body">
+				<canvas id="detector-performance" height="300"></canvas>
+			</div>
+		</div>
+
+		<div class="chart-card">
+			<div class="card-header">
+				<h3><i class="bi bi-pie-chart"></i> Confidence Distribution</h3>
+			</div>
+			<div class="card-body">
+				<canvas id="confidence-distribution" height="300"></canvas>
+			</div>
+		</div>
+
+		<div class="chart-card">
+			<div class="card-header">
+				<h3><i class="bi bi-people"></i> Top Source IPs</h3>
+			</div>
+			<div class="card-body">
+				<div id="top-sources-list" class="list-group" style="max-height: 300px; overflow-y: auto;"></div>
+			</div>
+		</div>
+	</div>
+		<!-- ==================== FEDERATED CLIENTS MODULE ==================== -->
+	<div class="federated-clients-section">
+		<!-- Header -->
+		<div class="federated-header">
+			<h2>
+				<span class="federated-header-icon"><i class="bi bi-diagram-3"></i></span>
+				Federated Client Network
+			</h2>
+			<div class="federated-controls">
+				<span id="real-time-indicator" class="real-time-indicator">
+					<span class="real-time-dot"></span> Connecting...
+				</span>
+				<div class="filter-control">
+					<label for="federated-status-filter">Filter:</label>
+					<select id="federated-status-filter" class="form-select">
+						<option value="">All Statuses</option>
+						<option value="online">Online</option>
+						<option value="offline">Offline</option>
+						<option value="training">Training</option>
+					</select>
+				</div>
+			</div>
+		</div>
+
+		<!-- Statistics Grid -->
+		<div class="federated-stats" id="federated-stats-container">
+			<div class="federated-stat-card" style="grid-column: 1/-1; display: flex; align-items: center; justify-content: center; gap: 8px; color: #6b7280;">
+				<div class="clients-loading-spinner"></div>
+				<span>Loading federated network statistics...</span>
+			</div>
+		</div>
+
+		<!-- Loading Indicator -->
+		<div id="federated-clients-loading" style="display: none; text-align: center; padding: 40px; color: #6b7280;">
+			<div style="display: inline-block; margin-bottom: 16px;">
+				<div class="clients-loading-spinner"></div>
+			</div>
+			<p>Loading connected clients...</p>
+		</div>
+
+		<!-- Clients Grid -->
+		<div class="clients-grid" id="federated-clients-grid">
+			<div class="clients-empty-state" style="grid-column: 1/-1;">
+				<div class="clients-empty-state-icon">🔌</div>
+				<p>No federated clients connected. Waiting for clients to join...</p>
+			</div>
+		</div>
+
+		<!-- Empty State -->
+		<div id="federated-clients-empty" style="display: none;"></div>
+	</div>
+	<!-- Recent Anomalies Table -->
+	<div class="chart-card full-width">
+		<div class="card-header">
+			<h3><i class="bi bi-table"></i> Recent Anomalies</h3>
+		</div>
+		<div class="card-body">
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th>Time</th>
+						<th>Attack Type</th>
+						<th>Category</th>
+						<th>Method/Location</th>
+						<th>Anomaly Score</th>
+						<th>Confidence</th>
+						<th>Detector</th>
+						<th>Action</th>
+					</tr>
+				</thead>
+				<tbody id="anomalies-table-body">
+					<tr>
+						<td colspan="8" class="text-center text-muted py-4">
+							<i class="bi bi-hourglass-split"></i> Loading...
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+function safeJsonResponse(resp) {
+	const ct = resp.headers.get('content-type') || '';
+	if (!resp.ok) throw new Error('Network error');
+	if (!ct.includes('application/json')) return resp.text().then(t => { throw new Error('Non-JSON response'); });
+	return resp.json();
+}
+
+function showNoData(containerId, message) {
+	const el = document.getElementById(containerId);
+	if (el) el.innerHTML = '<div class="p-3 text-muted">' + message + '</div>';
+}
+
+function getSelectedClientIdsParam() {
+	const sel = localStorage.getItem('zero_day_selected_clients');
+	if (!sel) return '';
+	return 'client_ids=' + encodeURIComponent(sel);
+}
+
+function appendClientParam(url) {
+	const param = getSelectedClientIdsParam();
+	if (!param) return url;
+	return url + (url.includes('?') ? '&' : '?') + param;
+}
+
+function loadStatsCards() {
+	    fetch(appendClientParam('/zero-day/api/anomalies?limit=1000&hours=24'))
+			.then(safeJsonResponse)
+			.then(data => {
+				// API returns { total, anomalies: [...] }
+				const anomalies = (data && data.anomalies) ? data.anomalies : (Array.isArray(data) ? data : []);
+				const totalAnomalies = (data && data.total) ? data.total : anomalies.length;
+				const highConfidence = anomalies.filter(a => (a.confidence || 0) > 0.7).length;
+				const avgConfidence = anomalies.length > 0 ? (anomalies.reduce((sum, a) => sum + (a.confidence || 0), 0) / anomalies.length * 100) : 0;
+				const uniqueSources = new Set(anomalies.map(a => a.src_ip)).size;
+
+				document.getElementById('total-anomalies').textContent = totalAnomalies;
+				document.getElementById('high-confidence-count').textContent = highConfidence;
+				document.getElementById('ensemble-consensus').textContent = avgConfidence.toFixed(1) + '%';
+				document.getElementById('unique-sources').textContent = uniqueSources;
+			})
+		.catch(err => { console.error('Error loading stats:', err); });
+	
+	// Load federated status (client list)
+	fetch('/zero-day/api/federated-status')
+		.then(safeJsonResponse)
+		.then(data => {
+			const clientsEl = document.getElementById('federated-clients');
+			if (data.initialized) {
+				clientsEl.textContent = data.client_manager ? data.client_manager.total_clients : (data.clients || 0);
+				clientsEl.style.color = '#2ecc71';
+			} else {
+				clientsEl.textContent = '0';
+				clientsEl.style.color = '#95a5a6';
+			}
+
+			// Populate client selector
+			try {
+				const select = document.getElementById('federated-client-select');
+				if (select && data.client_manager && data.client_manager.total_clients >= 0) {
+					// if API provides clients list include it
+					const clients = data.client_manager.clients || data.clients || [];
+					// fallback: attempt to fetch clients list endpoint
+					if ((!clients || clients.length === 0) && data.legacy_fed_server) {
+						// no-op
+					}
+					// if manager.get_client_list is exposed under `clients` in response (some servers)
+					if (Array.isArray(data.clients) && data.clients.length > 0) {
+						clients.splice(0, clients.length, ...data.clients);
+					}
+					// If clients not present, attempt real-time clients API
+					if ((!clients || clients.length === 0)) {
+						fetch('/api/federated/clients/real-time').then(safeJsonResponse).then(rc => {
+							populateClientSelect(rc.clients || rc.clients_list || []);
+						}).catch(()=>{});
+					} else {
+						populateClientSelect(clients || []);
+					}
+				}
+			} catch (e) { console.debug('Could not populate client selector', e); }
+		})
+		.catch(err => { console.error('Error loading federated status:', err); });
+}
+
+function loadAnomalyTimeline() {
+	fetch(appendClientParam('/zero-day/api/timeline?hours=24&interval=hour'))
+		.then(safeJsonResponse)
+		.then(data => {
+			const ctx = document.getElementById('anomaly-timeline');
+			if (!ctx) return;
+			const labels = data.map(d => (d.time || '').split('T')[1] || d.time || '');
+			const counts = data.map(d => d.count || 0);
+			if (window.timelineChart) window.timelineChart.destroy();
+			window.timelineChart = new Chart(ctx.getContext('2d'), {
+				type: 'line',
+				data: { labels, datasets: [{ label: 'Anomalies', data: counts, borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.1)', fill:true }] },
+				options: { responsive:true, maintainAspectRatio:false, plugins: { legend: { labels: { color: '#a0a0a0' } } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } } } }
+			});
+		})
+		.catch(err => { console.error('Error loading timeline:', err); });
+}
+
+function loadDetectorPerformance() {
+	fetch(appendClientParam('/zero-day/api/detector-performance?hours=24'))
+		.then(safeJsonResponse)
+		.then(data => {
+			const ctx = document.getElementById('detector-performance');
+			if (!ctx) return;
+			const labels = Object.keys(data||{}).map(k=>k.toUpperCase());
+			const vals = Object.values(data||{}).map(v=>v.total_detections||0);
+			if (window.performanceChart) window.performanceChart.destroy();
+			window.performanceChart = new Chart(ctx.getContext('2d'), {
+				type:'bar', data:{ labels, datasets:[{ label:'Detections', data:vals, backgroundColor:'#667eea'}] }, options:{responsive:true,maintainAspectRatio:false, plugins: { legend: { labels: { color: '#a0a0a0' } } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0a0' } } } }
+			});
+		})
+		.catch(err => { console.error('Error loading detector performance:', err); });
+}
+
+function loadConfidenceDistribution() {
+	fetch(appendClientParam('/zero-day/api/confidence-distribution?hours=24'))
+		.then(safeJsonResponse)
+		.then(data => {
+			const ctx = document.getElementById('confidence-distribution');
+			if (!ctx) return;
+			const labels = Object.keys(data||{});
+			const vals = Object.values(data||{});
+			if (window.confChart) window.confChart.destroy();
+			window.confChart = new Chart(ctx.getContext('2d'), { type:'doughnut', data:{ labels, datasets:[{ data:vals, backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'] }] }, options:{responsive:true,maintainAspectRatio:false, plugins: { legend: { position: 'bottom', labels: { color: '#a0a0a0' } } } } });
+		})
+		.catch(err => { console.error('Error loading confidence distribution:', err); });
+}
+
+function loadTopSources() {
+	fetch(appendClientParam('/zero-day/api/top-sources?limit=10&hours=24'))
+		.then(safeJsonResponse)
+		.then(data => {
+			const list = document.getElementById('top-sources-list');
+			if (!list) return;
+			list.innerHTML = '';
+			(data||[]).forEach(s => {
+				const item = document.createElement('div');
+				item.className = 'list-group-item';
+				item.innerHTML = '<strong>'+ (s.source_ip||'unknown') +'</strong> <span class="text-muted">('+ (s.count||0) +')</span>';
+				list.appendChild(item);
+			});
+			if ((data||[]).length === 0) list.innerHTML = '<div class="p-3 text-muted">No data available</div>';
+		})
+		.catch(err => console.error('Error loading top sources:', err));
+}
+
+function loadAnomaliesList() {
+	fetch(appendClientParam('/zero-day/api/anomalies?limit=50&hours=24'))
+		.then(safeJsonResponse)
+		.then(data => {
+			const tbody = document.getElementById('anomalies-table-body');
+			if (!tbody) return;
+			tbody.innerHTML = '';
+			const anomalies = (data && data.anomalies) ? data.anomalies : (Array.isArray(data) ? data : []);
+			if (anomalies.length === 0) {
+				tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-inbox"></i> No anomalies detected</td></tr>';
+				return;
+			}
+			anomalies.forEach(a => {
+				const row = document.createElement('tr');
+				const timestamp = a.timestamp ? new Date(a.timestamp).toLocaleString() : '';
+				const detectorName = a.detector || a.model_used || 'ensemble';
+				const attackInfo = a.attack_info || {};
+				const category = attackInfo.category || 'Unknown';
+				const methodLocation = attackInfo.method ? 
+					`<strong>${attackInfo.method}</strong><br/><small class="text-muted">${attackInfo.location || 'N/A'}</small>` : 
+					`<small class="text-muted">${attackInfo.location || 'N/A'}</small>`;
+                
+				row.innerHTML = `
+					<td><small>${timestamp}</small></td>
+					<td><span class="badge bg-danger">${a.attack_type || 'Unknown'}</span></td>
+					<td>${category}</td>
+					<td>${methodLocation}</td>
+					<td><strong>${(a.anomaly_score || 0).toFixed(2)}</strong></td>
+					<td>${((a.confidence || 0) * 100).toFixed(0)}%</td>
+					<td><small>${detectorName}</small></td>
+					<td><a href="/zero-day/alert/${a.id}" class="btn btn-sm btn-primary">Details</a></td>
+				`;
+				tbody.appendChild(row);
+			});
+		})
+		.catch(err => { console.error('Error loading anomalies:', err); document.getElementById('anomalies-table-body').innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading data</td></tr>'; });
+}
+
+document.addEventListener('DOMContentLoaded', function(){ 
+	// initialize client selector controls
+	function populateClientSelect(clients) {
+		const select = document.getElementById('federated-client-select');
+		if (!select) return;
+		select.innerHTML = '<option value="">All clients</option>';
+		(clients||[]).forEach(c => {
+			const opt = document.createElement('option');
+			opt.value = c.client_id || c.id || c.clientId || '';
+			opt.textContent = c.organization ? `${c.organization} (${opt.value})` : (c.client_id || c.id || opt.value);
+			select.appendChild(opt);
+		});
+		// restore saved selection
+		const saved = localStorage.getItem('zero_day_selected_clients');
+		if (saved) {
+			try { select.value = saved.split(',')[0] || ''; } catch(e){}
+		}
+	}
+
+	// wire up save/clear
+	document.getElementById('save-client-selection').addEventListener('click', () => {
+		const select = document.getElementById('federated-client-select');
+		if (!select) return;
+		const val = select.value || '';
+		if (val) localStorage.setItem('zero_day_selected_clients', val);
+		loadStatsCards(); loadAnomalyTimeline(); loadDetectorPerformance(); loadTopSources(); loadAnomaliesList();
+	});
+	document.getElementById('clear-client-selection').addEventListener('click', () => {
+		localStorage.removeItem('zero_day_selected_clients');
+		const select = document.getElementById('federated-client-select'); if (select) select.value = '';
+		loadStatsCards(); loadAnomalyTimeline(); loadDetectorPerformance(); loadTopSources(); loadAnomaliesList();
+	});
+
+	loadStatsCards(); 
+	loadAnomalyTimeline(); 
+	loadDetectorPerformance(); 
+	loadConfidenceDistribution(); 
+	loadTopSources(); 
+	loadAnomaliesList(); 
+	setInterval(()=>{ loadStatsCards(); loadAnomalyTimeline(); loadDetectorPerformance(); loadTopSources(); loadAnomaliesList(); }, 30000); 
+});
+</script>
+
+<!-- Federated Clients Real-Time Module -->
+<script src="{{ url_for('static', filename='js/federated_clients.js') }}"></script>
+
+{% endblock %}
+

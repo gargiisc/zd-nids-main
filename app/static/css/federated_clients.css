@@ -1,0 +1,621 @@
+/* 
+   Federated Clients Dashboard Styles
+   ===================================
+   Styles for the federated clients real-time dashboard module.
+*/
+
+/* ==================== Federated Clients Section ==================== */
+.federated-clients-section {
+    margin-top: 40px;
+    margin-bottom: 40px;
+}
+
+.federated-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #6366f1;
+}
+
+.federated-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #f9fafb;
+}
+
+.federated-header-icon {
+    font-size: 28px;
+    color: #6366f1;
+}
+
+.federated-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filter-control {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.filter-control label {
+    font-size: 13px;
+    color: #a0a0a0;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-control select {
+    background: #151922;
+    color: #e5e7eb;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-control select:hover {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+/* ==================== Federated Stats Grid ==================== */
+.federated-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.federated-stat-card {
+    background: linear-gradient(135deg, #151922 0%, #0f1419 100%);
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+}
+
+.federated-stat-card:hover {
+    border-color: #6366f1;
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.2);
+    transform: translateY(-2px);
+}
+
+.federated-stat-label {
+    font-size: 12px;
+    color: #a0a0a0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.federated-stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #6366f1;
+}
+
+.federated-stat-subvalue {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 6px;
+}
+
+/* ==================== Clients Grid ==================== */
+.clients-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+/* ==================== Client Cards ==================== */
+.client-card {
+    background: linear-gradient(135deg, #151922 0%, #0f1419 100%);
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.client-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #a78bfa);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.client-card:hover {
+    border-color: #6366f1;
+    box-shadow: 0 12px 30px rgba(99, 102, 241, 0.3);
+    transform: translateY(-4px);
+}
+
+.client-card:hover::before {
+    opacity: 1;
+}
+
+.client-card.online::before {
+    background: linear-gradient(90deg, #22c55e, #84cc16);
+}
+
+.client-card.offline::before {
+    background: linear-gradient(90deg, #ef4444, #f97316);
+}
+
+.client-card.training::before {
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    animation: pulse-border 2s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* Client Card Header */
+.client-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #1f2937;
+}
+
+.client-info {
+    flex: 1;
+}
+
+.client-organization {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f9fafb;
+    margin: 0 0 4px 0;
+}
+
+.client-id {
+    font-size: 11px;
+    color: #6b7280;
+    font-family: 'Courier New', monospace;
+    margin: 0;
+}
+
+.client-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.client-status-badge.online {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+.client-status-badge.online::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: blink 2s ease-in-out infinite;
+}
+
+.client-status-badge.offline {
+    background: rgba(107, 114, 128, 0.15);
+    color: #9ca3af;
+}
+
+.client-status-badge.offline::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #6b7280;
+    border-radius: 50%;
+}
+
+.client-status-badge.training {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    animation: pulse-badge 1.5s ease-in-out infinite;
+}
+
+.client-status-badge.training::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #3b82f6;
+    border-radius: 50%;
+    animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes blink {
+    0%, 49%, 100% { opacity: 1; }
+    50%, 99% { opacity: 0.3; }
+}
+
+@keyframes pulse-badge {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Client Card Metrics */
+.client-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.metric-item {
+    background: #0b0f19;
+    padding: 10px;
+    border-radius: 8px;
+    border-left: 3px solid #6366f1;
+}
+
+.metric-label {
+    font-size: 10px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
+}
+
+.metric-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f9fafb;
+}
+
+.metric-unit {
+    font-size: 10px;
+    color: #9ca3af;
+    margin-left: 2px;
+}
+
+/* Progress Bars */
+.progress-bar-container {
+    margin-bottom: 12px;
+}
+
+.progress-bar-label {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.progress-bar {
+    height: 6px;
+    background: #1f2937;
+    border-radius: 3px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #a78bfa);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 3px;
+}
+
+.progress-bar-fill.accuracy {
+    background: linear-gradient(90deg, #22c55e, #84cc16);
+}
+
+/* Client Card Footer */
+.client-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid #1f2937;
+    font-size: 11px;
+    color: #6b7280;
+}
+
+.client-last-update {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.client-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.client-action-btn {
+    background: transparent;
+    border: 1px solid #374151;
+    color: #9ca3af;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+}
+
+.client-action-btn:hover {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: #f9fafb;
+}
+
+/* ==================== Empty State ==================== */
+.clients-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+}
+
+.clients-empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.clients-empty-state p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* ==================== Loading State ==================== */
+.clients-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px;
+    color: #6b7280;
+}
+
+.clients-loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #374151;
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ==================== Real-Time Indicators ==================== */
+.real-time-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(34, 197, 94, 0.1);
+    color: #4ade80;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.real-time-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: pulse-indicator 2s ease-in-out infinite;
+}
+
+@keyframes pulse-indicator {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.7;
+    }
+}
+
+/* ==================== Modal/Drawer Styles ==================== */
+.client-detail-drawer {
+    position: fixed;
+    right: 0;
+    top: 0;
+    height: 100vh;
+    width: 400px;
+    background: #0e0f13;
+    border-left: 1px solid #1f2937;
+    box-shadow: -8px 0 20px rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.client-detail-drawer.open {
+    transform: translateX(0);
+}
+
+.client-detail-drawer-header {
+    padding: 20px;
+    border-bottom: 1px solid #1f2937;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.client-detail-drawer-title {
+    margin: 0;
+    font-size: 18px;
+    color: #f9fafb;
+}
+
+.client-detail-drawer-close {
+    background: none;
+    border: none;
+    color: #6b7280;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.client-detail-drawer-content {
+    padding: 20px;
+}
+
+/* ==================== Responsive Design ==================== */
+@media (max-width: 1024px) {
+    .clients-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 15px;
+    }
+}
+
+@media (max-width: 768px) {
+    .clients-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .federated-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .federated-controls {
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    .filter-control {
+        width: 100%;
+    }
+    
+    .filter-control select {
+        width: 100%;
+    }
+    
+    .federated-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .client-detail-drawer {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .federated-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .client-metrics {
+        grid-template-columns: 1fr;
+    }
+    
+    .client-card-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+/* ==================== Animation Classes ==================== */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ==================== Accessibility ==================== */
+@media (prefers-reduced-motion: reduce) {
+    .client-card,
+    .client-status-badge,
+    .progress-bar-fill,
+    .fade-in,
+    .slide-in,
+    .real-time-dot {
+        animation: none;
+        transition: none;
+    }
+}
+
+/* Dark theme enhancements */
+:root {
+    --primary-color: #6366f1;
+    --success-color: #22c55e;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --info-color: #3b82f6;
+    --dark-bg: #0e0f13;
+    --card-bg: #151922;
+    --border-color: #1f2937;
+    --text-primary: #f9fafb;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+}
