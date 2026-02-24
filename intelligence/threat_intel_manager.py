@@ -126,6 +126,37 @@ class ThreatIntelManager:
         if self.feed_manager is None:
             return {}
         return await self.feed_manager.update_all()
+
+    def ingest_custom_feed(self, entries: List[Dict[str, Any]], source: str = "custom") -> int:
+        """Ingest custom threat intelligence feed entries into in-memory cache."""
+        ingested = 0
+        for entry in entries:
+            indicator = entry.get("indicator")
+            if not indicator:
+                continue
+
+            indicator_type = entry.get("indicator_type", IndicatorType.IP.value)
+            try:
+                parsed_type = IndicatorType(indicator_type)
+            except Exception:
+                parsed_type = IndicatorType.IP
+
+            threat_indicator = ThreatIndicator(
+                indicator=indicator,
+                indicator_type=parsed_type,
+                threat_level=ThreatLevel(entry.get("threat_level", ThreatLevel.MEDIUM.value)),
+                confidence=float(entry.get("confidence", 0.5)),
+                risk_score=float(entry.get("risk_score", 50.0)),
+                categories=set(),
+                sources={source},
+                first_seen=datetime.now(),
+                last_seen=datetime.now(),
+                ioc_entries=[],
+                enrichment=entry.get("enrichment", {}),
+            )
+            self._indicator_cache[indicator] = (threat_indicator, datetime.now())
+            ingested += 1
+        return ingested
     
     async def lookup(self, indicator: str, force_refresh: bool = False) -> Optional[ThreatIndicator]:
         """

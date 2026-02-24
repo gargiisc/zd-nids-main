@@ -137,6 +137,7 @@ celery==5.3.4
 
 # Redis (for caching, queues, rate limiting)
 redis==5.0.1
+pykafka==2.8.0
 
 # Type Hints
 typing-extensions==4.8.0

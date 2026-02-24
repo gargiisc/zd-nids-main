@@ -785,3 +785,70 @@ if __name__ == '__main__':
         print(f"Feature vectors: {len(result['features'])}")
     else:
         print("Usage: python pcap_handler.py <pcap_file>")
+
+
+class FlowProcessingQueue:
+    """Queue wrapper for buffering parsed flows before model inference."""
+
+    def __init__(self, max_size: int = 5000):
+        import queue
+
+        self._queue: "queue.Queue[Dict[str, Any]]" = queue.Queue(maxsize=max_size)
+        self.dropped = 0
+
+    def put(self, flow: Dict[str, Any]) -> bool:
+        try:
+            self._queue.put_nowait(flow)
+            return True
+        except Exception:
+            self.dropped += 1
+            return False
+
+    def get(self, timeout: float = 0.1) -> Optional[Dict[str, Any]]:
+        import queue
+
+        try:
+            return self._queue.get(timeout=timeout)
+        except queue.Empty:
+            return None
+
+
+def process_packets_with_buffer(
+    packets: List[PacketInfo],
+    consumer: Any,
+    max_queue_size: int = 5000,
+    max_flows_per_second: int = 2000,
+) -> Dict[str, int]:
+    """High-level buffered processing helper for traffic spikes and DDoS surges."""
+    from .streaming_pipeline import FlowBufferRateLimiter
+
+    limiter = FlowBufferRateLimiter(
+        max_queue_size=max_queue_size,
+        max_flows_per_second=max_flows_per_second,
+    )
+
+    accepted = 0
+    processed = 0
+
+    for packet in packets:
+        flow = packet.to_dict()
+        if limiter.enqueue(flow):
+            accepted += 1
+
+        drained = limiter.dequeue(timeout=0.0)
+        if drained is not None:
+            consumer(drained)
+            processed += 1
+
+    while True:
+        drained = limiter.dequeue(timeout=0.01)
+        if drained is None:
+            break
+        consumer(drained)
+        processed += 1
+
+    return {
+        "accepted": accepted,
+        "processed": processed,
+        "dropped": limiter.dropped_flows,
+    }

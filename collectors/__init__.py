@@ -10,8 +10,8 @@ This package provides comprehensive network traffic collection capabilities:
 
 from .suricata_parser import SuricataParser, SuricataFlow, create_suricata_parser
 from .zeek_parser import ZeekParser, ZeekConn, create_zeek_parser
-from .pcap_handler import PCAPHandler, create_pcap_handler
-from .live_capture import LiveCapture, IntrusionDetector, create_live_capture
+from .pcap_handler import PCAPHandler, analyze_pcap
+from .live_capture import LiveCapture, LiveCaptureManager
 
 __all__ = [
     # Suricata Parser
@@ -19,7 +19,10 @@ __all__ = [
     # Zeek Parser
     'ZeekParser', 'ZeekConn', 'create_zeek_parser',
     # PCAP Handler
-    'PCAPHandler', 'create_pcap_handler',
+    'PCAPHandler', 'analyze_pcap',
     # Live Capture
-    'LiveCapture', 'IntrusionDetector', 'create_live_capture'
+    'LiveCapture', 'LiveCaptureManager', 'FlowBufferRateLimiter', 'KafkaFlowPublisher', 'KafkaFlowConsumer', 'LiveCaptureKafkaBridge', 'MultiSourceFlowCollector', 'NormalizedFlow'
 ]
+
+from .streaming_pipeline import FlowBufferRateLimiter, KafkaFlowPublisher, KafkaFlowConsumer, LiveCaptureKafkaBridge
+from .flow_source_collector import MultiSourceFlowCollector, NormalizedFlow

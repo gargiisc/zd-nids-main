@@ -4,13 +4,14 @@ Core detection logic integrating ML models with real-time analysis
 """
 
 import numpy as np
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from dataclasses import dataclass, field
 from datetime import datetime
 import threading
 import queue
 import logging
 import json
+from collections import defaultdict
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,31 @@ class DetectionResult:
         }
 
 
+
+
+class AlertCorrelator:
+    """Groups similar detections to reduce alert fatigue."""
+
+    def __init__(self, window_seconds: int = 300):
+        self.window_seconds = window_seconds
+
+    def correlate(self, results: List[DetectionResult]) -> List[DetectionResult]:
+        grouped: Dict[str, List[DetectionResult]] = defaultdict(list)
+        for result in results:
+            key = f"{result.source_ip}:{result.attack_type}"
+            grouped[key].append(result)
+
+        correlated: List[DetectionResult] = []
+        for _, bucket in grouped.items():
+            primary = max(bucket, key=lambda r: r.confidence)
+            primary.metadata = {
+                **primary.metadata,
+                "correlated_count": len(bucket),
+                "first_seen": min(r.timestamp for r in bucket).isoformat(),
+                "last_seen": max(r.timestamp for r in bucket).isoformat(),
+            }
+            correlated.append(primary)
+        return correlated
 class DetectionEngine:
     """
     Main detection engine for AI-NIDS.
@@ -129,6 +155,11 @@ class DetectionEngine:
         self.detection_threshold = self.config.get('detection_threshold', 0.5)
         self.enable_explanation = self.config.get('enable_explanation', True)
         self.batch_size = self.config.get('batch_size', 100)
+        self.correlator = AlertCorrelator(
+            window_seconds=self.config.get('correlation_window_seconds', 300)
+        )
+        self.mitigation_hook = None
+        self.mitigation_enabled = self.config.get('mitigation_enabled', True)
         
         # Statistics
         self.stats = {
@@ -350,9 +381,11 @@ class DetectionEngine:
             source_port=metadata.get('source_port') if metadata else None,
             destination_port=metadata.get('destination_port') if metadata else None,
             protocol=metadata.get('protocol') if metadata else None,
+            raw_features=metadata or {},
             shap_explanation=shap_explanation
         )
-        
+
+        self._trigger_mitigation_if_needed(result)
         return result
     
 # CONFIDENCE = Average of (Model1_prob × w1 + Model2_prob × w2 + ... + ModelN_prob × wN) / no. of all organizations
@@ -370,8 +403,8 @@ class DetectionEngine:
             meta = metadata[i] if i < len(metadata) else None
             result = self._detect_single(x, meta)
             results.append(result)
-        
-        return results
+
+        return self.correlator.correlate(results)
     
     def _get_severity(self, attack_type: str, confidence: float) -> ThreatSeverity:
         """Determine severity based on attack type and confidence."""
@@ -533,6 +566,23 @@ class DetectionEngine:
             'by_attack_type': {},
             'by_severity': {s.name: 0 for s in ThreatSeverity}
         }
+
+    def register_mitigation_hook(self, mitigation_engine: Any) -> None:
+        """Register autonomous mitigation hook engine."""
+        self.mitigation_hook = mitigation_engine
+
+    def _trigger_mitigation_if_needed(self, result: DetectionResult) -> None:
+        """Trigger mitigation asynchronously if configured thresholds are met."""
+        if not self.mitigation_enabled or self.mitigation_hook is None:
+            return
+        if not result.is_attack:
+            return
+
+        try:
+            if self.mitigation_hook.should_trigger(result):
+                self.mitigation_hook.trigger_async(result)
+        except Exception as exc:
+            logger.error(f"Mitigation hook failed: {exc}")
     
     # ===== Async Processing =====
     

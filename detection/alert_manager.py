@@ -10,6 +10,7 @@ import threading
 import logging
 import json
 from enum import Enum
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,34 @@ class Alert:
         }
 
 
+
+
+@dataclass
+class EscalationRule:
+    """Escalation policy for unacknowledged alerts."""
+
+    after_minutes: int
+    channel: str
+    target: str
+
+
+class WebhookNotifier:
+    """Generic webhook notifier for Slack/Teams/PagerDuty/custom endpoints."""
+
+    def __init__(self, timeout_seconds: float = 3.0):
+        self.timeout_seconds = timeout_seconds
+
+    def send(self, alert: Alert, endpoint: str, channel: str = "webhook") -> bool:
+        payload = {
+            "channel": channel,
+            "alert": alert.to_dict(),
+        }
+        try:
+            response = requests.post(endpoint, json=payload, timeout=self.timeout_seconds)
+            return response.status_code < 300
+        except Exception as exc:
+            logger.error("Webhook notification failed: %s", exc)
+            return False
 class AlertManager:
     """
     Manages security alerts for the AI-NIDS system.
@@ -108,6 +137,12 @@ class AlertManager:
         
         # Notification callbacks
         self.notification_handlers: List[Callable] = []
+        self.webhook_notifier = WebhookNotifier()
+        self.webhook_endpoints: Dict[str, str] = self.config.get('webhook_endpoints', {})
+        self.escalation_rules: List[EscalationRule] = [
+            EscalationRule(**rule) for rule in self.config.get('escalation_rules', [])
+        ]
+        self._active_alerts: Dict[str, Alert] = {}
         
         # In-memory alert cache for deduplication
         self._alert_cache: Dict[str, datetime] = {}
@@ -175,6 +210,8 @@ class AlertManager:
         # Update cache
         self._update_cache(alert_key)
         
+        self._active_alerts[alert.id] = alert
+
         # Send notifications
         self._notify(alert)
         
@@ -255,7 +292,10 @@ class AlertManager:
                 self.db_session.rollback()
     
     def _notify(self, alert: Alert) -> None:
-        """Send alert notifications."""
+        """Send alert notifications via handlers and configured webhook channels."""
+        for channel, endpoint in self.webhook_endpoints.items():
+            self.webhook_notifier.send(alert, endpoint=endpoint, channel=channel)
+
         for handler in self.notification_handlers:
             try:
                 handler(alert)
@@ -298,6 +338,22 @@ class AlertManager:
     def register_notification_handler(self, handler: Callable) -> None:
         """Register a notification callback."""
         self.notification_handlers.append(handler)
+
+    def run_escalation_check(self, now: Optional[datetime] = None) -> List[str]:
+        """Escalate alerts that remain unacknowledged past configured windows."""
+        now = now or datetime.utcnow()
+        escalated = []
+
+        for alert in list(self._active_alerts.values()):
+            if alert.status != AlertStatus.NEW:
+                continue
+            age_minutes = (now - alert.timestamp).total_seconds() / 60
+            for rule in self.escalation_rules:
+                if age_minutes >= rule.after_minutes:
+                    self.webhook_notifier.send(alert, endpoint=rule.target, channel=rule.channel)
+                    escalated.append(alert.id)
+        return escalated
+
     
     def acknowledge_alert(self, alert_id: str, user: Optional[str] = None) -> bool:
         """Acknowledge an alert."""

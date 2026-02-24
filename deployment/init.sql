@@ -24,3 +24,19 @@ GRANT ALL PRIVILEGES ON DATABASE ai_nids TO nids;
 -- Create schema for better organization (optional)
 -- CREATE SCHEMA IF NOT EXISTS nids;
 -- ALTER ROLE nids SET search_path TO nids, public;
+
+-- Mitigation action audit table (for autonomous response logging)
+CREATE TABLE IF NOT EXISTS mitigation_action_logs (
+    id SERIAL PRIMARY KEY,
+    attack_id VARCHAR(128) NOT NULL,
+    attack_type VARCHAR(100) NOT NULL,
+    source_ip VARCHAR(45) NOT NULL,
+    action_taken VARCHAR(100) NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) NOT NULL,
+    rollback_available BOOLEAN DEFAULT FALSE,
+    details TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_mitigation_action_logs_attack_id ON mitigation_action_logs (attack_id);
+CREATE INDEX IF NOT EXISTS idx_mitigation_action_logs_timestamp ON mitigation_action_logs (timestamp);
